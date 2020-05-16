@@ -16,10 +16,11 @@ export default class App extends LightningElement {
                 c = c.substring(1);
             }
             if (c.indexOf(name) === 0) {
+                console.log('Cookie: ' + c);
                 return c.substring(name.length, c.length);
             }
         }
-        return 'fort';
+        return 'test';
     }
 
     handleChange(event) {
@@ -30,12 +31,33 @@ export default class App extends LightningElement {
             this.depth = event.target.value;
         } else if (field === 'apiKey') {
             document.cookie = 'apiKey=' + event.target.value;
+            this.apiKey = event.target.value;
         }
     }
 
     handleGoButton() {
         if (this.pName !== '' && this.depth !== '') {
-            console.log('---< Call internal Server here >---');
+            console.log(
+                'pName: ' +
+                    this.pName +
+                    '; depth: ' +
+                    this.depth +
+                    '; apiKey: ' +
+                    this.apiKey
+            );
+            fetch(
+                'http://localhost:3002/api/v1/endpoint?pName=' +
+                    this.pName +
+                    '&apiKey=' +
+                    this.apiKey
+            )
+                .then((response) => console.log(response.json()))
+                .catch((error) => error);
         }
+    }
+
+    // eslint-disable-next-line no-unused-vars
+    loadTextField(event) {
+        document.cookie = 'apiKey=test';
     }
 }

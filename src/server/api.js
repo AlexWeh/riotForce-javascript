@@ -1,67 +1,66 @@
 // Simple Express server setup to serve for local testing/dev API server
-const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+const fetch = require('node-fetch');
 const compression = require('compression');
 const helmet = require('helmet');
 const express = require('express');
+const cors = require('cors');
 
 const app = express();
 app.use(helmet());
 app.use(compression());
+app.use(cors());
 
 const HOST = process.env.API_HOST || 'localhost';
 const PORT = process.env.API_PORT || 3002;
 
-const XHR = new XMLHttpRequest();
-
-const API_KEY = 'RGAPI-9601fc49-0710-481b-83a5-0a1a41b3abcd';
+let requestOptions;
 
 app.get('/api/v1/endpoint', (req, res) => {
-    res.json('done');
-    getPUUIDbySummonerName('GeneralGorgeous')
-        .then((resolve) => {
-            console.log(resolve);
-        })
-        .catch((reject) => {
-            console.log(reject);
-        });
+    console.log('Key: ' + req.query.apiKey);
+    requestOptions = {
+        method: 'GET',
+        headers: { 'X-Riot-Token': req.query.apiKey },
+        redirect: 'follow'
+    };
+
+    getPUUIDbySummonerName(req.query.pName)
+        .then((result) =>
+            getMatchesByPUUID(result)
+                .then((response) => {
+                    res.json(response);
+                    console.log(response);
+                })
+                .catch((err) => console.log(err))
+        )
+        .catch((error) => console.log(error));
 });
 
 async function getPUUIDbySummonerName(SummonerName) {
-    XHR.withCredentials = true;
-
-    XHR.addEventListener('readystatechange', function () {
-        if (this.readyState === 4) {
-            console.log(this.responseText);
-            return this.responseText;
-        }
-        return 'error';
-    });
-
-    XHR.open(
-        'GET',
+    return fetch(
         'https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/' +
-            SummonerName
-    );
-    XHR.setRequestHeader('X-Riot-Token', API_KEY);
-
-    XHR.send();
+            SummonerName,
+        requestOptions
+    )
+        .then((response) => response.json())
+        .then((result) => {
+            return result.puuid;
+        })
+        .catch((error) => console.log('error', error));
 }
 
-/*function getMatchesByPUUID(SummonerPUUID ) {
-    XHR.withCredentials = true;
-
-    XHR.addEventListener("readystatechange", function () {
-        if (this.readyState === 4) {
-            return this.responseText;
-        }
-        return 'error';
-    });
-
-    XHR.open("GET", "https://euw1.api.riotgames.com/lol/match/v4/matchlists/by-account/Ea_iOV3_A2f_pevljK2MFMCeSaBooBJ_hOnOugQsOBL5MA?beginIndex=0" & SummonerPUUID);
-    XHR.setRequestHeader("X-Riot-Token", API_KEY);
-
-    XHR.send();
-}*/
+async function getMatchesByPUUID(SummonerPUUID) {
+    return fetch(
+        'https://europe.api.riotgames.com/tft/match/v1/matches/by-puuid/' +
+            SummonerPUUID +
+            '/ids',
+        requestOptions
+    )
+        .then((response) => response.json())
+        .then((result) => {
+            return result;
+        })
+        .catch((error) => console.log('error', error));
+}
 
 app.listen(PORT, () =>
     console.log(
