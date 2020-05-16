@@ -1,10 +1,18 @@
 <template>
     <div class="center">
-        <img src="/resources/lwc.png" />
-    </div>
-
-    <!-- Page code -->
-    <div class="center">
-        <div class="container"></div>
+        <p>API Key</p>
+        <input
+            type="text"
+            id="apiKey"
+            name="apiKey"
+            onchange={handleChange}
+            value={apiKey}
+        />
+        <p>Player Name</p>
+        <input type="text" id="pName" name="pName" onchange={handleChange} />
+        <p>Crawl Depth</p>
+        <input type="text" id="depth" name="depth" onchange={handleChange} />
+        <br />
+        <button type="button" onclick={handleGoButton}>Go!</button>
     </div>
 </template>
