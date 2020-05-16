@@ -1,0 +1,6 @@
+FROM node:13-alpine
+WORKDIR /
+COPY . .
+EXPOSE 3001 3002
+RUN yarn install
+CMD ["npm", "run watch"]

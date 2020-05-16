@@ -9,8 +9,7 @@
         "cors": "^2.8.5",
         "express": "^4.17.1",
         "helmet": "^3.22.0",
-        "node-fetch": "^2.6.0",
-        "xmlhttprequest": "^1.8.0"
+        "node-fetch": "^2.6.0"
     },
     "devDependencies": {
         "eslint": "^7.0.0",
