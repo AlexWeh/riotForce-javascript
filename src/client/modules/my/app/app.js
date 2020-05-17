@@ -20,7 +20,7 @@ export default class App extends LightningElement {
                 return c.substring(name.length, c.length);
             }
         }
-        return 'test';
+        return '';
     }
 
     handleChange(event) {
@@ -54,10 +54,5 @@ export default class App extends LightningElement {
                 .then((response) => console.log(response.json()))
                 .catch((error) => error);
         }
-    }
-
-    // eslint-disable-next-line no-unused-vars
-    loadTextField(event) {
-        document.cookie = 'apiKey=test';
     }
 }
