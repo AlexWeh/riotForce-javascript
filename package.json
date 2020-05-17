@@ -8,8 +8,12 @@
         "compression": "^1.7.4",
         "cors": "^2.8.5",
         "express": "^4.17.1",
+        "fs": "0.0.1-security",
         "helmet": "^3.22.0",
-        "node-fetch": "^2.6.0"
+        "node-fetch": "^2.6.0",
+        "sqlite3": "^4.2.0",
+        "uuid": "^8.0.0",
+        "wait-port": "^0.2.7"
     },
     "devDependencies": {
         "eslint": "^7.0.0",

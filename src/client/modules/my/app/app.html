@@ -13,6 +13,16 @@
         <input type="text" id="pName" name="pName" onchange={handleChange} />
         <p>Crawl Depth</p>
         <input type="text" id="depth" name="depth" onchange={handleChange} />
+
+        <br />
+
+        <label for="regions">Region:</label>
+        <select id="regions" name="regions" onchange={handleChange}>
+            <option value="europe">EU</option>
+            <option value="americas">NA</option>
+            <option value="asia">AS</option>
+        </select>
+
         <br />
         <button type="button" onclick={handleGoButton}>Go!</button>
     </div>

@@ -4,6 +4,7 @@ export default class App extends LightningElement {
     apiKey = this.getCookie('apiKey');
     pName;
     depth;
+    region = 'EU';
 
     getCookie(cname) {
         var name = cname + '=';
@@ -16,7 +17,6 @@ export default class App extends LightningElement {
                 c = c.substring(1);
             }
             if (c.indexOf(name) === 0) {
-                console.log('Cookie: ' + c);
                 return c.substring(name.length, c.length);
             }
         }
@@ -32,6 +32,9 @@ export default class App extends LightningElement {
         } else if (field === 'apiKey') {
             document.cookie = 'apiKey=' + event.target.value;
             this.apiKey = event.target.value;
+        } else if (field === 'regions') {
+            console.log(event.target.value);
+            this.region = event.target.value;
         }
     }
 
@@ -43,13 +46,18 @@ export default class App extends LightningElement {
                     '; depth: ' +
                     this.depth +
                     '; apiKey: ' +
-                    this.apiKey
+                    this.apiKey +
+                    '&region' +
+                    this.region
             );
             fetch(
-                'http://localhost:3002/api/v1/endpoint?pName=' +
+                'http://localhost:3002/api/v1/endpoint?' +
+                    'pName=' +
                     this.pName +
                     '&apiKey=' +
-                    this.apiKey
+                    this.apiKey +
+                    '&region' +
+                    this.region
             )
                 .then((response) => console.log(response.json()))
                 .catch((error) => error);
