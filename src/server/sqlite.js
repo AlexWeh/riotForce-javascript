@@ -21,7 +21,7 @@ function init() {
             console.log(`Using sqlite database at ${location}`);
 
             db.run(
-                'CREATE TABLE IF NOT EXISTS matches (id varchar(36), match_id varchar(255), completed boolean)',
+                'CREATE TABLE IF NOT EXISTS matches (id varchar(36), name varchar(255), completed boolean)',
                 //'CREATE TABLE  IF NOT EXISTS items (item_id INTEGER NOT NULL UNIQUE, name TEXT, PRIMARY KEY(item_id)'
                 (err, result) => {
                     if (err) return rej(err);
@@ -43,7 +43,7 @@ async function teardown() {
 
 async function getItems() {
     return new Promise((acc, rej) => {
-        db.all('SELECT * FROM todo_items', (err, rows) => {
+        db.all('SELECT * FROM matches', (err, rows) => {
             if (err) return rej(err);
             acc(
                 rows.map((item) =>
@@ -58,7 +58,7 @@ async function getItems() {
 
 async function getItem(id) {
     return new Promise((acc, rej) => {
-        db.all('SELECT * FROM todo_items WHERE id=?', [id], (err, rows) => {
+        db.all('SELECT * FROM matches WHERE id=?', [id], (err, rows) => {
             if (err) return rej(err);
             acc(
                 rows.map((item) =>
@@ -74,7 +74,7 @@ async function getItem(id) {
 async function storeItem(item) {
     return new Promise((acc, rej) => {
         db.run(
-            'INSERT INTO todo_items (id, name, completed) VALUES (?, ?, ?)',
+            'INSERT INTO matches (id, name, completed) VALUES (?, ?, ?)',
             [item.id, item.name, item.completed ? 1 : 0],
             (err) => {
                 if (err) return rej(err);
@@ -87,7 +87,7 @@ async function storeItem(item) {
 async function updateItem(id, item) {
     return new Promise((acc, rej) => {
         db.run(
-            'UPDATE todo_items SET name=?, completed=? WHERE id = ?',
+            'UPDATE matches SET name=?, completed=? WHERE id = ?',
             [item.name, item.completed ? 1 : 0, id],
             (err) => {
                 if (err) return rej(err);
@@ -99,7 +99,7 @@ async function updateItem(id, item) {
 
 async function removeItem(id) {
     return new Promise((acc, rej) => {
-        db.run('DELETE FROM todo_items WHERE id = ?', [id], (err) => {
+        db.run('DELETE FROM matches WHERE id = ?', [id], (err) => {
             if (err) return rej(err);
             acc();
         });

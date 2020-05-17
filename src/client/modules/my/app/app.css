@@ -1,18 +1,6 @@
 .center {
     text-align: center;
 }
-.link {
-    border: none;
-    padding: 10px;
-    border-radius: 5px;
-    text-decoration: none;
-    background-color: #ff6000;
-    color: white;
-    margin-left: 33%;
-    margin-right: 33%;
-    display: inline-block;
-    margin-top: 1em;
-}
 .info {
     color: black;
     background-color: #e4f2f8;
@@ -27,12 +15,4 @@
 }
 .container {
     margin-top: 30px;
-}
-
-img {
-    max-width: 150px;
-}
-
-.greeting {
-    height: 75px;
 }
