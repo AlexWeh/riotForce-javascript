@@ -3,4 +3,4 @@ WORKDIR /
 COPY . .
 EXPOSE 3001 3002
 RUN yarn install
-CMD ["npm", "run watch"]
+CMD ["npm", "run", "watch"]
