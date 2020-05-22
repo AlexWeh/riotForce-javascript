@@ -29,4 +29,5 @@ ehthumbs.db
 $RECYCLE.BIN/
 
 #The database
-/src/server/database/*
+/src/server/database/*.db*
+/src/server/database/static/*

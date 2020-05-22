@@ -4,8 +4,7 @@ const compression = require('compression');
 const helmet = require('helmet');
 const express = require('express');
 const cors = require('cors');
-const db = require('./sqlite');
-//const { v4: uuid } = require('uuid');
+const db = require('./database/sqlite');
 
 const app = express();
 app.use(helmet());
@@ -18,7 +17,8 @@ const PORT = process.env.API_PORT || 3002;
 let requestOptions;
 
 let REGION;
-let BASE_URL = 'https://' + REGION + '.api.riotgames.com';
+let BASE_HTTPS = 'https://';
+let BASE_URL = '.api.riotgames.com';
 
 app.get('/api/v1/endpoint', (req, res) => {
     if (
@@ -60,7 +60,12 @@ async function getPUUIDbySummonerName(SummonerName) {
 
 async function getMatchesByPUUID(SummonerPUUID) {
     return fetch(
-        BASE_URL + '/tft/match/v1/matches/by-puuid/' + SummonerPUUID + '/ids',
+        BASE_HTTPS +
+            REGION +
+            BASE_URL +
+            '/tft/match/v1/matches/by-puuid/' +
+            SummonerPUUID +
+            '/ids?count=1',
         requestOptions
     )
         .then((response) => response.json())
@@ -71,7 +76,10 @@ async function getMatchesByPUUID(SummonerPUUID) {
 }
 
 async function getMatcheByID(MatchID) {
-    return fetch(BASE_URL + '/tft/match/v1/matches/' + MatchID, requestOptions)
+    return fetch(
+        BASE_HTTPS + REGION + BASE_URL + '/tft/match/v1/matches/' + MatchID,
+        requestOptions
+    )
         .then((response) => response.json())
         .then((result) => {
             return result;
@@ -81,7 +89,7 @@ async function getMatcheByID(MatchID) {
 
 function processMathResponse(matchArray) {
     matchArray.forEach((match) => {
-        getMatcheByID(match).then((result) => console.log(result));
+        getMatcheByID(match).then((result) => console.log(result)); //db.storeMatch(result));
     });
 }
 

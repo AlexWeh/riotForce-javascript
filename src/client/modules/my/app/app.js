@@ -4,7 +4,7 @@ export default class App extends LightningElement {
     apiKey = this.getCookie('apiKey');
     pName;
     depth;
-    region = 'EU';
+    region = 'europe';
 
     getCookie(cname) {
         var name = cname + '=';
@@ -33,7 +33,6 @@ export default class App extends LightningElement {
             document.cookie = 'apiKey=' + event.target.value;
             this.apiKey = event.target.value;
         } else if (field === 'regions') {
-            console.log(event.target.value);
             this.region = event.target.value;
         }
     }
@@ -47,7 +46,7 @@ export default class App extends LightningElement {
                     this.depth +
                     '; apiKey: ' +
                     this.apiKey +
-                    '&region' +
+                    ' region: ' +
                     this.region
             );
             fetch(
@@ -56,7 +55,7 @@ export default class App extends LightningElement {
                     this.pName +
                     '&apiKey=' +
                     this.apiKey +
-                    '&region' +
+                    '&region=' +
                     this.region
             )
                 .then((response) => console.log(response.json()))
