@@ -83,55 +83,55 @@ function prepareVersionNumber(versionString) {
 }
 
 async function storeMatch(match) {
-    let version = prepareVersionNumber(match.info.game_version);
+    if ((await getMatch(match.metadata.match_id)) === undefined) {
+        let version = prepareVersionNumber(match.info.game_version);
+        let matchParticipantRowId = uuid();
+        await setVersion(version);
 
-    //return new Promise((acc, rej) => {
-    await setVersion(version);
-
-    let matchParticipantRowId = uuid();
-    for await (let participant of match.info.participants) {
-        let participantChampionRowId = uuid();
-        for await (let unit of participant.units) {
-            let itemRowId = uuid();
-            for await (let item of unit.items) {
-                await setChampionItem(itemRowId, unit.character_id, item);
+        for await (let participant of match.info.participants) {
+            let participantChampionRowId = uuid();
+            for await (let unit of participant.units) {
+                let itemRowId = uuid();
+                for await (let item of unit.items) {
+                    await setChampionItem(itemRowId, unit.character_id, item);
+                }
+                await setParticipantChampion(
+                    participantChampionRowId,
+                    participant.puuid,
+                    unit.character_id,
+                    itemRowId
+                );
             }
-            await setParticipantChampion(
-                participantChampionRowId,
+            await setParticipant(
                 participant.puuid,
-                unit.character_id,
-                itemRowId
+                participant.gold_left,
+                participant.last_round,
+                participant.level,
+                participant.placement,
+                participant.players_eliminated,
+                participant.time_eliminated,
+                participant.total_damage_to_players,
+                participantChampionRowId
+            );
+            await setMatchParticipant(
+                matchParticipantRowId,
+                match.metadata.match_id,
+                participant.puuid
             );
         }
-        await setParticipant(
-            participant.puuid,
-            participant.gold_left,
-            participant.last_round,
-            participant.level,
-            participant.placement,
-            participant.players_eliminated,
-            participant.time_eliminated,
-            participant.total_damage_to_players,
-            participantChampionRowId
-        );
-        await setMatchParticipant(
-            matchParticipantRowId,
-            match.metadata.match_id,
-            participant.puuid
-        );
-    }
 
-    let dbmatch = await setMatch(
-        match.metadata.match_id,
-        match.info.queue_id,
-        match.info.tft_set_number,
-        match.metadata.data_version,
-        version,
-        match.info.game_datetime,
-        match.info.game_length,
-        matchParticipantRowId
-    );
-    //});
+        let dbmatch = await setMatch(
+            match.metadata.match_id,
+            match.info.queue_id,
+            match.info.tft_set_number,
+            match.metadata.data_version,
+            version,
+            match.info.game_datetime,
+            match.info.game_length,
+            matchParticipantRowId
+        );
+        return new Promise((acc, rej) => {});
+    }
 }
 
 /*-------------CRUD----------------*/
@@ -244,13 +244,16 @@ async function setParticipant(
 }
 
 async function getMatch(match_id) {
-    db.get(
-        'SELECT * FROM Match WHERE (match_id)= (?)',
-        [match_id],
-        (err, row) => {
-            if (err) return console.log(err);
-        }
-    );
+    return new Promise((acc, rej) => {
+        db.get(
+            'SELECT * FROM Match WHERE (match_id)= (?)',
+            [match_id],
+            (err, row) => {
+                if (err) return rej(err);
+                acc(row);
+            }
+        );
+    });
 }
 
 async function setMatch(

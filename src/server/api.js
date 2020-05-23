@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // Simple Express server setup to serve for local testing/dev API server
 const fetch = require('node-fetch');
 const compression = require('compression');
@@ -32,6 +33,7 @@ app.get('/api/v1/endpoint', (req, res) => {
             redirect: 'follow'
         };
         REGION = req.query.region;
+
         getPUUIDbySummonerName(req.query.pName)
             .then((result) =>
                 getMatchesByPUUID(result)
@@ -88,8 +90,8 @@ async function getMatcheByID(MatchID) {
 }
 
 function processMathResponse(matchArray) {
-    matchArray.forEach((match) => {
-        getMatcheByID(match).then((result) => db.storeMatch(result));
+    matchArray.forEach((match_id) => {
+        getMatcheByID(match_id).then((matchObj) => db.storeMatch(matchObj));
     });
 }
 

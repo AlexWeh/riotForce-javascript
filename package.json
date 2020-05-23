@@ -66,7 +66,7 @@
         "prettier:verify": "prettier --list-different \"**/*.{css,html,js,json,md,ts,yaml,yml}\"",
         "serve": "run-p serve:client serve:api",
         "serve:api": "node src/server/api.js",
-        "serve:client": "node scripts/server.js",
+        "serve:client": "node scripts/webserver.js",
         "test:unit": "lwc-services test:unit",
         "test:unit:coverage": "lwc-services test:unit --coverage",
         "test:unit:debug": "lwc-services test:unit --debug",

@@ -7,7 +7,11 @@
     },
     "overrides": [
         {
-            "files": ["src/server/**", "scripts/server.js", "jest.config.js"],
+            "files": [
+                "src/server/**",
+                "scripts/webserver.js",
+                "jest.config.js"
+            ],
             "env": {
                 "node": true
             }
