@@ -89,7 +89,7 @@ async function getMatcheByID(MatchID) {
 
 function processMathResponse(matchArray) {
     matchArray.forEach((match) => {
-        getMatcheByID(match).then((result) => console.log(result)); //db.storeMatch(result));
+        getMatcheByID(match).then((result) => db.storeMatch(result));
     });
 }
 

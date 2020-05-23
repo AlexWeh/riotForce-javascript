@@ -83,49 +83,65 @@ function prepareVersionNumber(versionString) {
 }
 
 async function storeMatch(match) {
-    console.log(match);
-    console.log(match.info.participants[0]);
     let version = prepareVersionNumber(match.info.game_version);
 
-    let match_info_data = match.metadata.match_id.split('_');
-    let realm = match_info_data[0];
-    let match_id = match_info_data[1];
-    return new Promise((acc, rej) => {
-        setVersion(version);
+    //return new Promise((acc, rej) => {
+    await setVersion(version);
 
-        match.info.participants.forEach((participant) => {
-            participant.units.forEach((unit) => {
-                let champsWithItems;
-                unit.items.forEach((item) => {
-                    champsWithItems = setChampionItem(
-                        unit.character_id,
-                        item.item_id
-                    );
-                });
-            });
-        });
-
-        let dbmatch = setMatch(
-            match_id,
-            match.info.queue_id,
-            match.info.tft_set_number,
-            match.metadata.data_version,
-            version,
-            match.info.game_datetime,
-            match.info.game_length,
-            realm
+    let matchParticipantRowId = uuid();
+    for await (let participant of match.info.participants) {
+        let participantChampionRowId = uuid();
+        for await (let unit of participant.units) {
+            let itemRowId = uuid();
+            for await (let item of unit.items) {
+                await setChampionItem(itemRowId, unit.character_id, item);
+            }
+            await setParticipantChampion(
+                participantChampionRowId,
+                participant.puuid,
+                unit.character_id,
+                itemRowId
+            );
+        }
+        await setParticipant(
+            participant.puuid,
+            participant.gold_left,
+            participant.last_round,
+            participant.level,
+            participant.placement,
+            participant.players_eliminated,
+            participant.time_eliminated,
+            participant.total_damage_to_players,
+            participantChampionRowId
         );
-    });
+        await setMatchParticipant(
+            matchParticipantRowId,
+            match.metadata.match_id,
+            participant.puuid
+        );
+    }
+
+    let dbmatch = await setMatch(
+        match.metadata.match_id,
+        match.info.queue_id,
+        match.info.tft_set_number,
+        match.metadata.data_version,
+        version,
+        match.info.game_datetime,
+        match.info.game_length,
+        matchParticipantRowId
+    );
+    //});
 }
 
 /*-------------CRUD----------------*/
 
-async function getVersion(version) {
+function getVersion(version) {
     db.get(
         'SELECT * FROM Version WHERE (version_id)= (?)',
         [version],
         (err, row) => {
-            if (err) return err;
+            if (err) return console.log(err);
             return row;
         }
     );
@@ -136,43 +152,103 @@ async function setVersion(version) {
         'INSERT OR IGNORE INTO Version (version_id) VALUES (?)',
         [version],
         (err) => {
-            if (err) return err;
+            if (err) return console.log(err);
         }
     );
 }
 
-async function getChampion(params) {}
+function getChampion(champion) {
+    db.get(
+        'SELECT * FROM Champion WHERE (champion_id, name)= (?, ?)',
+        [champion.champion_id, champion.name],
+        (err, row) => {
+            if (err) return console.log(err);
+        }
+    );
+}
 
-async function setChampion(params) {}
+function setChampion(champion) {
+    async function setVersion(version) {
+        db.run(
+            'INSERT OR IGNORE INTO Champion (version_id) VALUES (?)',
+            [version],
+            (err) => {
+                if (err) return console.log(err);
+            }
+        );
+    }
+}
 
-async function getItem(params) {}
+function getItem(item) {
+    db.get(
+        'SELECT * FROM Item WHERE (item_id)= (?)',
+        [item.item_id],
+        (err, row) => {
+            if (err) return console.log(err);
+        }
+    );
+}
 
-async function setItem(params) {}
+function setItem(params) {}
 
-async function getTrait(params) {}
+function getTrait(trait_id) {
+    db.get(
+        'SELECT * FROM Trait WHERE (trait_id)= (?)',
+        [trait_id],
+        (err, row) => {
+            if (err) return console.log(err);
+        }
+    );
+}
 
-async function setTrait(params) {}
+function setTrait(params) {}
 
-async function getParticipant(puuid) {
+function getParticipant(puuid) {
     db.get(
         'SELECT * FROM Participant WHERE (puuid)= (?)',
         [puuid],
         (err, row) => {
-            if (err) return err;
-            return row;
+            if (err) return console.log(err);
         }
     );
 }
 
-async function setParticipant(params) {}
+async function setParticipant(
+    puuid,
+    gold_left,
+    last_round,
+    level,
+    placement,
+    players_eliminated,
+    time_eliminated,
+    total_damage_to_players,
+    champions
+) {
+    db.get(
+        'INSERT OR IGNORE INTO Participant (puuid, gold_left, last_round, level, placement, players_eliminated, time_eliminated, total_damage_to_players, champions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+            puuid,
+            gold_left,
+            last_round,
+            level,
+            placement,
+            players_eliminated,
+            time_eliminated,
+            total_damage_to_players,
+            champions
+        ],
+        (err, row) => {
+            if (err) return console.log(err);
+        }
+    );
+}
 
 async function getMatch(match_id) {
     db.get(
         'SELECT * FROM Match WHERE (match_id)= (?)',
         [match_id],
         (err, row) => {
-            if (err) return err;
-            return row;
+            if (err) return console.log(err);
         }
     );
 }
@@ -183,54 +259,69 @@ async function setMatch(
     tft_set_number,
     data_version,
     version,
-    ame_datetime,
-    game_length,
-    realm
+    game_datetime,
+    game_length
 ) {
     db.run(
-        'INSERT OR IGNORE INTO Match (match_id, queue_id, tft_set_number, data_version, version, game_datetime, game_length, realm) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT OR IGNORE INTO Match (match_id, queue_id, tft_set_number, data_version, version, game_datetime, game_length) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
             match_id,
             queue_id,
             tft_set_number,
             data_version,
             version,
-            ame_datetime,
-            game_length,
-            realm
+            game_datetime,
+            game_length
         ],
         (err) => {
-            if (err) return err;
+            if (err) return console.log(err);
         }
     );
 }
 
-async function getMatchParticipant(params) {}
+function getMatchParticipant(params) {}
 
-async function setMatchParticipant(params) {}
-
-async function getParticipantChampion(params) {}
-
-async function setParticipantChampion(params) {}
-
-async function getChampionItem(params) {}
-
-async function setChampionItem(champion_id, item_id) {
+async function setMatchParticipant(uuid, match_id, participant_id) {
     db.all(
-        'INSERT INTO Champion_Items (uuid, champion_id, item_id) VALUES (?, ?, ?)',
-        [uuid(), champion_id, item_id],
+        'INSERT INTO Match_Participants (uuid, match, participant) VALUES (?, ?, ?)',
+        [uuid, match_id, participant_id],
         (err, rows) => {
-            if (err) return err;
-            //champsWithItems.push();
-            console.log(rows);
-            return rows;
+            if (err) return console.log(err);
         }
     );
 }
 
-async function getChampionTrait(params) {}
+function getParticipantChampion(params) {}
 
-async function setChampionTrait(params) {}
+async function setParticipantChampion(
+    uuid,
+    participant_id,
+    champion_id,
+    items_id
+) {
+    db.all(
+        'INSERT INTO Participant_Champions (uuid, participant, champion, items) VALUES (?, ?, ?, ?)',
+        [uuid, participant_id, champion_id, items_id],
+        (err, rows) => {
+            if (err) return console.log(err);
+        }
+    );
+}
+
+function getChampionItem(params) {}
+
+async function setChampionItem(rowid, champion_id, item_id) {
+    db.all(
+        'INSERT INTO Champion_Items (uuid, champion, item) VALUES (?, ?, ?)',
+        [rowid, champion_id, item_id],
+        (err, rows) => {
+            if (err) return console.log(err);
+        }
+    );
+}
+function getChampionTrait(params) {}
+
+function setChampionTrait(params) {}
 
 /*---------------Static----------------*/
 function loadStaticItems() {
@@ -281,5 +372,25 @@ module.exports = {
     storeMatch,
     loadStaticItems,
     loadStaticTraits,
-    loadStaticChampions
+    loadStaticChampions,
+    getChampion,
+    setChampion,
+    getChampionItem,
+    setChampionItem,
+    getChampionTrait,
+    setChampionTrait,
+    getItem,
+    setItem,
+    getMatch,
+    setMatch,
+    getMatchParticipant,
+    setMatchParticipant,
+    getParticipant,
+    setParticipant,
+    getParticipantChampion,
+    setParticipantChampion,
+    getTrait,
+    setTrait,
+    getVersion,
+    setVersion
 };
