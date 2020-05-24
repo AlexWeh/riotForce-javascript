@@ -1,6 +1,6 @@
 /* eslint-disable no-empty-function */
-/* eslint-disable no-unused-vars */
 /* eslint-disable no-shadow */
+/* eslint-disable no-unused-vars */
 /* eslint-disable consistent-return */
 const sqlite3 = require('sqlite3').verbose();
 const { v4: uuid } = require('uuid');
@@ -25,44 +25,72 @@ function init() {
                     }
                 );
 
-                db.run('', (err) => {
-                    if (err) return rej(err);
-                });
-
-                db.run('', (err) => {
-                    if (err) return rej(err);
-                });
-
-                db.run('', (err) => {
-                    if (err) return rej(err);
-                });
-
-                db.run('', (err) => {
-                    if (err) return rej(err);
-                });
-
-                db.run('', (err) => {
-                    if (err) return rej(err);
-                });
-
-                db.run('', (err) => {
-                    if (err) return rej(err);
-                });
-
-                db.run('', (err) => {
-                    if (err) return rej(err);
-                });
-
-                db.run('', (err) => {
-                    if (err) return rej(err);
-                });
-
                 db.run(
-                    'CREATE TABLE Champion (champion_id TEXT, name TEXT, version INTEGER, rarity INTEGER, tier INTEGER, cost INTEGER, PRIMARY KEY(champion_id), FOREIGN KEY(version) REFERENCES Version(version_id))',
+                    'CREATE TABLE Trait (  trait_id TEXT UNIQUE,  name TEXT,  total_number INTEGER,  type TEXT,  PRIMARY KEY(trait_id) ) ',
                     (err) => {
                         if (err) return rej(err);
                     }
                 );
+
+                db.run(
+                    'CREATE TABLE Champion (  champion_id TEXT,  name TEXT,  version INTEGER,  rarity INTEGER,  tier INTEGER,  cost INTEGER,  PRIMARY KEY(champion_id),  FOREIGN KEY(version) REFERENCES Version(version_id) )',
+                    (err) => {
+                        if (err) return rej(err);
+                    }
+                );
+
+                db.run(
+                    'CREATE TABLE Item (  item_id INTEGER UNIQUE,  name TEXT,  PRIMARY KEY(item_id) ) ',
+                    (err) => {
+                        if (err) return rej(err);
+                    }
+                );
+
+                db.run(
+                    'CREATE TABLE Participant (  puuid TEXT,  gold_left INTEGER,  companion INTEGER,  last_round INTEGER,  level INTEGER,  placement INTEGER,  players_eliminated INTEGER,  time_eliminated NUMERIC,  total_damage_to_players INTEGER,  champions INTEGER,  PRIMARY KEY(puuid) ) ',
+                    (err) => {
+                        if (err) return rej(err);
+                    }
+                );
+
+                db.run(
+                    'CREATE TABLE Champion_Items (  uuid TEXT,  champion INTEGER,  item INTEGER,  FOREIGN KEY(champion) REFERENCES Champion(champion_id),  FOREIGN KEY(item) REFERENCES Item(item_id) )',
+                    (err) => {
+                        if (err) return rej(err);
+                    }
+                );
+
+                db.run(
+                    'CREATE TABLE Champion_Traits (  champion INTEGER,  trait INTEGER,  FOREIGN KEY(trait) REFERENCES Trait(trait_id),  FOREIGN KEY(champion) REFERENCES Champion(champion_id) )',
+                    (err) => {
+                        if (err) return rej(err);
+                    }
+                );
+
+                db.run(
+                    'CREATE TABLE Participant_Champions (  participant INTEGER,  champion INTEGER,  items TEXT,  uuid TEXT,  FOREIGN KEY(participant) REFERENCES Participant(puuid),  FOREIGN KEY(champion) REFERENCES Champion(champion_id),  FOREIGN KEY(items) REFERENCES Champion_Items(uuid) ) ',
+                    (err) => {
+                        if (err) return rej(err);
+                    }
+                );
+
+                db.run(
+                    'CREATE TABLE Match_Participants (  match INTEGER,  participant TEXT,  FOREIGN KEY(match) REFERENCES Match(match_id),  FOREIGN KEY(participant) REFERENCES Participant(puuid) )',
+                    (err) => {
+                        if (err) return rej(err);
+                    }
+                );
+
+                db.run(
+                    'CREATE TABLE Match (  match_id TEXT,  queue_id INTEGER,  tft_set_number INTEGER,  data_version INTEGER,  version INTEGER,  game_datetime NUMERIC,  game_length NUMERIC,  PRIMARY KEY(match_id),  FOREIGN KEY(version) REFERENCES Version(version_id) )',
+                    (err) => {
+                        if (err) return rej(err);
+                    }
+                );
+
+                loadStaticChampions();
+                loadStaticItems();
+                loadStaticTraits();
             }
             acc();
         });
@@ -83,55 +111,55 @@ function prepareVersionNumber(versionString) {
 }
 
 async function storeMatch(match) {
-    if ((await getMatch(match.metadata.match_id)) === undefined) {
-        let version = prepareVersionNumber(match.info.game_version);
-        let matchParticipantRowId = uuid();
-        await setVersion(version);
+    let version = prepareVersionNumber(match.info.game_version);
 
-        for await (let participant of match.info.participants) {
-            let participantChampionRowId = uuid();
-            for await (let unit of participant.units) {
-                let itemRowId = uuid();
-                for await (let item of unit.items) {
-                    await setChampionItem(itemRowId, unit.character_id, item);
-                }
-                await setParticipantChampion(
-                    participantChampionRowId,
-                    participant.puuid,
-                    unit.character_id,
-                    itemRowId
-                );
+    await setMatch(
+        match.metadata.match_id,
+        match.info.queue_id,
+        match.info.tft_set_number,
+        match.metadata.data_version,
+        version,
+        match.info.game_datetime,
+        match.info.game_length
+    ).catch((error) => {
+        throw error;
+    });
+
+    let matchParticipantRowId = uuid();
+    await setVersion(version);
+
+    for await (let participant of match.info.participants) {
+        let participantChampionRowId = uuid();
+        for await (let unit of participant.units) {
+            let itemRowId = uuid();
+            for await (let item of unit.items) {
+                await setChampionItem(itemRowId, unit.character_id, item);
             }
-            await setParticipant(
+            await setParticipantChampion(
+                participantChampionRowId,
                 participant.puuid,
-                participant.gold_left,
-                participant.last_round,
-                participant.level,
-                participant.placement,
-                participant.players_eliminated,
-                participant.time_eliminated,
-                participant.total_damage_to_players,
-                participantChampionRowId
-            );
-            await setMatchParticipant(
-                matchParticipantRowId,
-                match.metadata.match_id,
-                participant.puuid
+                unit.character_id,
+                itemRowId
             );
         }
-
-        let dbmatch = await setMatch(
-            match.metadata.match_id,
-            match.info.queue_id,
-            match.info.tft_set_number,
-            match.metadata.data_version,
-            version,
-            match.info.game_datetime,
-            match.info.game_length,
-            matchParticipantRowId
+        await setParticipant(
+            participant.puuid,
+            participant.gold_left,
+            participant.last_round,
+            participant.level,
+            participant.placement,
+            participant.players_eliminated,
+            participant.time_eliminated,
+            participant.total_damage_to_players,
+            participantChampionRowId
         );
-        return new Promise((acc, rej) => {});
+        await setMatchParticipant(
+            matchParticipantRowId,
+            match.metadata.match_id,
+            participant.puuid
+        );
     }
+    return new Promise((acc, rej) => {});
 }
 
 /*-------------CRUD----------------*/
@@ -265,29 +293,32 @@ async function setMatch(
     game_datetime,
     game_length
 ) {
-    db.run(
-        'INSERT OR IGNORE INTO Match (match_id, queue_id, tft_set_number, data_version, version, game_datetime, game_length) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [
-            match_id,
-            queue_id,
-            tft_set_number,
-            data_version,
-            version,
-            game_datetime,
-            game_length
-        ],
-        (err) => {
-            if (err) return console.log(err);
-        }
-    );
+    return new Promise((acc, rej) => {
+        db.run(
+            'INSERT INTO Match (match_id, queue_id, tft_set_number, data_version, version, game_datetime, game_length) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+                match_id,
+                queue_id,
+                tft_set_number,
+                data_version,
+                version,
+                game_datetime,
+                game_length
+            ],
+            (err) => {
+                if (err) return rej(err);
+                acc();
+            }
+        );
+    });
 }
 
 function getMatchParticipant(params) {}
 
 async function setMatchParticipant(uuid, match_id, participant_id) {
     db.all(
-        'INSERT INTO Match_Participants (uuid, match, participant) VALUES (?, ?, ?)',
-        [uuid, match_id, participant_id],
+        'INSERT INTO Match_Participants (match, participant) VALUES (?, ?)',
+        [match_id, participant_id],
         (err, rows) => {
             if (err) return console.log(err);
         }

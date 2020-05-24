@@ -1,11 +1,11 @@
 /* eslint-disable no-unused-vars */
-// Simple Express server setup to serve for local testing/dev API server
 const fetch = require('node-fetch');
 const compression = require('compression');
 const helmet = require('helmet');
 const express = require('express');
 const cors = require('cors');
 const db = require('./database/sqlite');
+const QueueManager = require('./QueueManager');
 
 const app = express();
 app.use(helmet());
@@ -15,8 +15,10 @@ app.use(cors());
 const HOST = process.env.API_HOST || 'localhost';
 const PORT = process.env.API_PORT || 3002;
 
-let requestOptions;
+const QUERYCOUNT = 10;
 
+let requestOptions;
+let queue = new QueueManager();
 let REGION;
 let BASE_HTTPS = 'https://';
 let BASE_URL = '.api.riotgames.com';
@@ -39,7 +41,7 @@ app.get('/api/v1/endpoint', (req, res) => {
                 getMatchesByPUUID(result)
                     .then((response) => {
                         res.json(response);
-                        processMathResponse(response);
+                        loopMatchResult(response);
                     })
                     .catch((err) => console.log(err))
             )
@@ -67,7 +69,8 @@ async function getMatchesByPUUID(SummonerPUUID) {
             BASE_URL +
             '/tft/match/v1/matches/by-puuid/' +
             SummonerPUUID +
-            '/ids?count=1',
+            '/ids?count=' +
+            QUERYCOUNT,
         requestOptions
     )
         .then((response) => response.json())
@@ -89,10 +92,18 @@ async function getMatcheByID(MatchID) {
         .catch((error) => console.log('error', error));
 }
 
-function processMathResponse(matchArray) {
-    matchArray.forEach((match_id) => {
-        getMatcheByID(match_id).then((matchObj) => db.storeMatch(matchObj));
-    });
+async function loopMatchResult(matchArray) {
+    for await (let match_id of matchArray) {
+        queue.queueUp(processMatch, match_id);
+    }
+}
+
+async function processMatch(match_id) {
+    getMatcheByID(match_id).then((matchObj) =>
+        db.storeMatch(matchObj).catch((error) => {
+            console.log(error);
+        })
+    );
 }
 
 db.init()
